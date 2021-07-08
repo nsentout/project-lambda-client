@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package lambda;
+
+message PlayersData
+{
+	int32 x = 1;
+	int32 y = 2;
+}
+
+message GameState
+{
+	// TODO: type message
+	int32 nb_players = 1;
+	repeated PlayersData players_data = 2;
+}

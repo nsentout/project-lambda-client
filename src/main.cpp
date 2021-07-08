@@ -2,75 +2,108 @@
 #include <stdlib.h>
 
 #include <chrono>
+#include <iostream>
 
-#include "../proto/movement.pb.h"
 #include "Client.hpp"
+#include "Renderer.hpp"
 
-#define POLL_INTERVAL 0.1
+#define FPS_CAP 60
+#define POLL_INTERVAL (1000.0 / FPS_CAP) / 1000.0
+#define DEFAULT_PORT 1234
 
 int main(int argc, char **argv)
 {
-    Client client;
-    int response = client.connectToServer(1234);
-    if (response < 0) {
+    if (enet_initialize () != 0)
+    {
+        fprintf (stderr, "An error occurred while initializing ENet.\n");
         return EXIT_FAILURE;
     }
 
-    lambda::Movement m;
-    m.set_direction(lambda::Movement_Direction_DOWN_LEFT);
-    client.sendDirectionToServer(&m);
+    Client player;
+    int response = player.connectToServer(DEFAULT_PORT);
+    if (response < 0)
+    {
+        return EXIT_FAILURE;
+    }
 
-    ENetEvent event;
+    SDL_Event event;
+    bool quit = false;
+    const Uint8 *state = SDL_GetKeyboardState(NULL);
+
+    //Renderer::getInstance()->init();
+
     auto start = std::chrono::system_clock::now();
-    while (true)
+    while (!quit)
     {
         std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - start;
         if (elapsed_seconds.count() > POLL_INTERVAL)
         {
             start = std::chrono::system_clock::now();
+            player.checkPacketBox();
 
-            if (enet_host_service(client.getHost(), &event, 0) > 0)
+            while (SDL_PollEvent(&event) != 0)
             {
                 switch (event.type)
                 {
-                // Only the "peer" field of the event structure is valid for this event
-                case ENET_EVENT_TYPE_CONNECT:
+                case SDL_KEYDOWN:
                 {
-                    printf("A new client connected from %x:%u.\n",
-                           event.peer->address.host,
-                           event.peer->address.port);
-                    /* Store any relevant client information here. */
-                    event.peer->data = "Client dummy";
+                    SDL_Keycode keyPressed = event.key.keysym.sym;
+
+                    if (keyPressed == SDLK_SPACE && !state[SDLK_SPACE])
+                    {
+                        std::cout << "pressed space" << std::endl;
+                    }
+
+                    if (keyPressed == SDLK_LEFT)
+                    {
+                        std::cout << "pressed LEFT" << std::endl;
+                        player.moveLeft();
+                        //movement.set_direction(lambda::GameState_Movement_Direction_LEFT);
+                        //client.sendDirectionToServer(&movement);
+                    }
+
+                    if (keyPressed == SDLK_RIGHT)
+                    {
+                        std::cout << "pressed RIGHT" << std::endl;
+                        player.moveRight();
+                        //movement.set_direction(lambda::GameState_Movement_Direction_RIGHT);
+                        //client.sendDirectionToServer(&movement);
+                    }
+
+                    if (keyPressed == SDLK_UP)
+                    {
+                        std::cout << "pressed UP" << std::endl;
+                        player.moveUp();
+                        //movement.set_direction(lambda::GameState_Movement_Direction_UP);
+                        //client.sendDirectionToServer(&movement);
+                    }
+
+                    if (keyPressed == SDLK_DOWN)
+                    {
+                        std::cout << "pressed DOWN" << std::endl;
+                        player.moveDown();
+                        //movement.set_direction(lambda::GameState_Movement_Direction_DOWN);
+                        //client.sendDirectionToServer(&movement);
+                    }
+
+                    if (keyPressed == SDLK_ESCAPE)
+                    {
+                        quit = true;
+                    }
                     break;
                 }
 
-                // The "peer" field contains the peer the packet was received from, "channelID" is the channel on
-                // which the packet was sent, and "packet" is the packet that was sent.
-                case ENET_EVENT_TYPE_RECEIVE:
+                case SDL_QUIT:
                 {
-                    printf("A packet of length %u containing '%s' was received from %s on channel %u.\n",
-                           event.packet->dataLength,
-                           event.packet->data,
-                           event.peer->data,
-                           event.channelID);
-
-                    /* Clean up the packet now that we're done using it. */
-                    enet_packet_destroy(event.packet);
-
+                    quit = true;
                     break;
-                }
-
-                // Only the "peer" field of the event structure is valid for this event and contains the peer that disconnected
-                case ENET_EVENT_TYPE_DISCONNECT:
-                {
-                    printf("%s disconnected.\n", event.peer->data);
-                    /* Reset the peer's client information. */
-                    event.peer->data = NULL;
                 }
                 }
             }
         }
     }
+
+    enet_deinitialize();
 
     return EXIT_SUCCESS;
 }
