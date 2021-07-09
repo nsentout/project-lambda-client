@@ -8,12 +8,7 @@ Renderer *Renderer::m_instance = nullptr;
 const SDL_Color PLAYER1_COLOR = { 255, 0, 0, 255};
 const SDL_Color PLAYER2_COLOR = { 0, 255, 0, 255};
 const SDL_Color PLAYER3_COLOR = { 0, 0, 255, 255};
-/*
-const int PLAYER_WIDTH = 100;
-const Position PLAYER1_SPAWN_POSITION = { 100, 200 };
-const Position PLAYER2_SPAWN_POSITION = { 700 - PLAYER_WIDTH / 2, 200 };
-const Position PLAYER3_SPAWN_POSITION = { 400 - PLAYER_WIDTH / 2, 50 };
-*/
+
 Renderer::Renderer()
 {
 
@@ -65,7 +60,6 @@ void Renderer::drawPlayers(Position *positions, int nb_players)
         }
     }
 }
-
 
 void Renderer::drawPlayer(int player_num, int x, int y)
 {
