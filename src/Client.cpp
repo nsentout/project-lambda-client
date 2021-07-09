@@ -3,17 +3,16 @@
 
 #include "Client.hpp"
 #include "Renderer.hpp"
-#include "../../proto/gamestate.pb.h"
 
-#include <iostream>
 #include <sstream>
 
 #define HOST_NAME "localhost"
-#define CONNECTION_TIMEOUT 5000
+//#define CONNECTION_TIMEOUT 5000
+#define CONNECTION_TIMEOUT 100000
 #define NUMBER_CHANNELS 2
 #define SPEED 100
 
-Client::Client() : m_host(nullptr), m_server(nullptr), m_server_gamestate(new lambda::GameState()), m_client_gamestate(new lambda::GameState())
+Client::Client() : m_host(nullptr), m_server(nullptr)
 {
     createClient();
 }
@@ -22,16 +21,15 @@ Client::~Client()
 {
     this->disconnect();
     delete m_server_address;
-    delete m_server_gamestate;
-    delete m_client_gamestate;
 }
 
 void printPacketDescription(const lambda::GameState *gamestate)
 {
-    printf("Packet description:\n");
-    printf("Nb players: %d\n", gamestate->nb_players());
-    for (int i = 0; i < gamestate->nb_players(); i++) {
-        printf("Player %d: (%d,%d)\n", i+1, gamestate->players_data(i).x(), gamestate->players_data(i).y());
+    printf("\tPacket description:\n");
+    printf("\tNb players: %d\n", gamestate->nb_players());
+    for (int i = 0; i < gamestate->nb_players(); i++)
+    {
+        printf("\tPlayer %d: (%d,%d)\n", i + 1, gamestate->players_data(i).x(), gamestate->players_data(i).y());
     }
 }
 
@@ -73,9 +71,9 @@ int Client::connectToServer(int server_port)
     if (enet_host_service(m_host, &event, CONNECTION_TIMEOUT) > 0 &&
         event.type == ENET_EVENT_TYPE_CONNECT)
     {
-        puts("Connection to localhost:1234 succeeded.");
+        puts("Attempt to connecting to localhost:1234 succeeded. Waiting for server response ...");
         /* Store any relevant server information here. */
-        event.peer->data = (void*) "SERVER";
+        event.peer->data = (void *)"SERVER";
     }
     else
     {
@@ -89,29 +87,13 @@ int Client::connectToServer(int server_port)
 
     enet_host_flush(m_host); // Why does this have to be here for the server to receive the connection attempt ?
 
-    int response = enet_host_service(m_host, &event, 1000);
+    //int response = enet_host_service(m_host, &event, 1000);
+    int response = enet_host_service(m_host, &event, CONNECTION_TIMEOUT);
 
     // Server sent game state and the player's positions
     if (response > 0)
     {
-        printf("A packet of length %u was received from %d on channel %u.\n",
-               event.packet->dataLength,
-               event.peer->address.host,
-               event.channelID);
-
-        std::istringstream unserialized_gamestate(reinterpret_cast<char const *>(event.packet->data));
-        m_server_gamestate->ParseFromIstream(&unserialized_gamestate);
-
-        printPacketDescription(m_server_gamestate);
-
-        m_player_id = m_server_gamestate->nb_players() - 1;
-        
-        auto player_data = m_server_gamestate->players_data(m_player_id);
-        m_x = player_data.x();
-        m_y = player_data.y();
-
-        Renderer::getInstance()->init();
-        firstDraw();
+        drawFirstGamestateReceived(&event);
     }
     else
     {
@@ -123,51 +105,82 @@ int Client::connectToServer(int server_port)
     return 1;
 }
 
-void Client::firstDraw() const
+void Client::drawFirstGamestateReceived(ENetEvent *net_event)
 {
-    int nb_players = m_server_gamestate->nb_players();
-    //Position positions[nb_players];
-	Position *positions = new Position[nb_players]();
+    puts("Connection to localhost:1234 accepted.");
+
+    printf("A packet of length %u was received from %d on channel %u.\n",
+           net_event->packet->dataLength,
+           net_event->peer->address.host,
+           net_event->channelID);
+
+    lambda::GameState gamestate_received = getGamestateFromPacket(net_event);
+    printPacketDescription(&gamestate_received);
+
+    if (gamestate_received.nb_players() < 1)
+    {
+        printf("Received malformed package.\n");
+        disconnect();
+        exit(-1);
+    }
+
+    m_player_id = gamestate_received.nb_players() - 1;
+
+    auto player_data = gamestate_received.players_data(m_player_id);
+    m_x = player_data.x();
+    m_y = player_data.y();
+
+    Renderer::getInstance()->init();
+    firstDraw(&gamestate_received);
+}
+
+void Client::firstDraw(lambda::GameState *gamestate) const
+{
+    int nb_players = gamestate->nb_players();
+    Position *positions = new Position[nb_players]();
     for (int i = 0; i < nb_players; i++)
     {
-        positions[i] = { m_server_gamestate->players_data(i).x(), m_server_gamestate->players_data(i).y() };
+        positions[i] = {gamestate->players_data(i).x(), gamestate->players_data(i).y()};
     }
+
     Renderer::getInstance()->drawPlayers(positions, nb_players);
-	delete positions;
+    delete positions;
 }
 
-void Client::sendPacket(const char *packetContent) const
+lambda::GameState Client::getGamestateFromPacket(ENetEvent *net_event) const
 {
-    /* Create a reliable packet of size 7 containing "packet\0" */
-    ENetPacket *packet = enet_packet_create(packetContent, strlen(packetContent) + 1, ENET_PACKET_FLAG_RELIABLE);
-
-    /* Send the packet to the peer over channel id 0. */
-    enet_peer_send(m_server, 0, packet);
-    printf("Sending packet ('%s') to server.\n", packetContent);
+    lambda::GameState gamestate;
+    std::istringstream unserialized_gamestate(reinterpret_cast<char const *>(net_event->packet->data));
+    gamestate.ParseFromIstream(&unserialized_gamestate);
+    return gamestate;
 }
+
+const std::string Client::getStringFromPlayerAction(lambda::PlayerAction *playeraction) const
+{
+    std::string serialized_playeraction;
+    playeraction->SerializeToString(&serialized_playeraction);
+    return serialized_playeraction;
+}
+
 
 void Client::sendPositionToServer(int x, int y)
 {
-    m_server_gamestate->mutable_players_data(m_player_id)->set_x(x);
-    m_server_gamestate->mutable_players_data(m_player_id)->set_y(y);
+    lambda::PlayerAction playerAction;
+    playerAction.set_new_x(x);
+    playerAction.set_new_y(y);
 
-    std::ostringstream serialized_position;
-    m_server_gamestate->SerializeToOstream(&serialized_position);
+    std::string packet_data = getStringFromPlayerAction(&playerAction);
+    ENetPacket *packet = enet_packet_create(packet_data.data(), packet_data.size(), ENET_PACKET_FLAG_RELIABLE);
 
-    /* Create a reliable packet of size 7 containing "packet\0" */
-    const char *packetData = serialized_position.str().c_str();
-    ENetPacket *packet = enet_packet_create(packetData, strlen(packetData), ENET_PACKET_FLAG_RELIABLE);
-
-    /* Send the packet to the peer over channel id 0. */
+    // Send the packet to the peer over channel id 0.
     enet_peer_send(m_server, 0, packet);
-    printf("Sending packet '(%d, %d)' to server.\n", m_server_gamestate->players_data(m_player_id).x(), m_server_gamestate->players_data(m_player_id).y());
+    printf("Sending packet '(%d, %d)' to server.\n", playerAction.new_x(), playerAction.new_y());
 }
 
 /**
  * Checks if a packet is in the waiting queue.
- * If there is, packetReceived will be assigned its value.
  */
-void Client::checkPacketBox(/*char *packetReceived*/)
+void Client::checkPacketBox()
 {
     ENetEvent net_event;
     while (enet_host_service(m_host, &net_event, 0) > 0)
@@ -185,26 +198,27 @@ void Client::checkPacketBox(/*char *packetReceived*/)
         case ENET_EVENT_TYPE_RECEIVE:
         {
             printf("A packet of length %u was received from %d on channel %u.\n",
-               net_event.packet->dataLength,
-               net_event.peer->address.host,
-               net_event.channelID);
+                   net_event.packet->dataLength,
+                   net_event.peer->address.host,
+                   net_event.channelID);
 
-            //packetReceived = (char *)event.packet->userData;
+            lambda::GameState gamestate = getGamestateFromPacket(&net_event);
 
-            std::istringstream unserialized_gamestate(reinterpret_cast<char const *>(net_event.packet->data));
-            lambda::GameState gamestate;
-            gamestate.ParseFromIstream(&unserialized_gamestate);
-            //TODO: handle players deco
-            puts("===\nclient receive\n===");
+            puts("Client received following packet :\n");
             printPacketDescription(&gamestate);
 
-            //TODO: recoit des données erronées après le premier mouvement : pas de joueurs
+            if (gamestate.nb_players() < 1)
+            {
+                printf("Received malformed package.\n");
+                disconnect();
+                exit(-1);
+            }
 
             // Retrieve players positions and send them to the renderer
             lambda::PlayersData player_data;
-            int nb_players = m_server_gamestate->nb_players();
+            int nb_players = gamestate.nb_players();
             //Position positions[nb_players];
-			Position *positions = new Position[nb_players]();
+            Position *positions = new Position[nb_players]();
             for (int i = 0; i < nb_players; i++)
             {
                 player_data = gamestate.players_data(i);
@@ -213,8 +227,8 @@ void Client::checkPacketBox(/*char *packetReceived*/)
             Renderer::getInstance()->drawPlayers(positions, nb_players);
 
             /* Clean up the packet now that we're done using it. */
-            enet_packet_destroy(net_event.packet);
-			delete positions;
+            //enet_packet_destroy(net_event.packet);
+            delete positions;
         }
         }
     }

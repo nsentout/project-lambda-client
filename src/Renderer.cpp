@@ -57,10 +57,10 @@ void Renderer::init()
     }
 }
 
-void Renderer::drawPlayers(Position *positions, int length) 
+void Renderer::drawPlayers(Position *positions, int nb_players) 
 {
     if (positions != nullptr) {
-        for (int i = 0; i < length; i++) {
+        for (int i = 0; i < nb_players; i++) {
             drawPlayer(i, positions[i].getX(), positions[i].getY());
         }
     }
@@ -86,20 +86,18 @@ void Renderer::drawPlayer(int player_num, int x, int y)
             break;
     }
 
-    updateRect(player_num, x, y, &player_color);
+    drawRect(player_num, x, y, &player_color);
 }
 
-void Renderer::updateRect(int rect_index, int new_x, int new_y, SDL_Color *color)
+void Renderer::drawRect(int rect_index, int new_x, int new_y, SDL_Color *color)
 {
     SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, 255);
     SDL_RenderFillRect(m_renderer, &m_rectangles[rect_index]);
 
-    // TODO: check si c'est le bon rectangle, le bon client
-    // TODO: pourquoi le déplacement marche en mode debug et pas en mode normal ?
-    if (m_rectangles.size() == 0)
+    if (m_rectangles.size() == rect_index)
         m_rectangles.push_back({ new_x, new_y, 100, 100 });
     else
-        m_rectangles[0] = { new_x, new_y, 100, 100 };
+        m_rectangles[rect_index] = { new_x, new_y, 100, 100 };
 
     SDL_SetRenderDrawColor(m_renderer, color->r, color->g, color->b, color->a);
     SDL_RenderFillRect(m_renderer, &m_rectangles[rect_index]);

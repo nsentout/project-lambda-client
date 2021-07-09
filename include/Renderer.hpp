@@ -27,7 +27,7 @@ public:
     void init();
     void drawPlayers(Position *positions, int length);
     void drawPlayer(int player_num, int x, int y);
-    void updateRect(int rect_index, int new_x, int new_y, SDL_Color *color);
+    void drawRect(int rect_index, int new_x, int new_y, SDL_Color *color);
 };
 
 #endif

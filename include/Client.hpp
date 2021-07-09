@@ -4,6 +4,7 @@
 #include <enet/enet.h>
 
 #include "../../proto/gamestate.pb.h"
+#include "../../proto/playeraction.pb.h"
 
 class Client
 {
@@ -11,8 +12,6 @@ private:
     ENetHost *m_host;
     ENetPeer *m_server;
     ENetAddress *m_server_address;
-    lambda::GameState *m_server_gamestate; // server
-    lambda::GameState *m_client_gamestate; // client   --> doit synchroniser les deux quand on recoit paquet du serveur, supprimer <positions>
 
     int m_player_id;
 
@@ -20,7 +19,10 @@ private:
     int m_y;
 
     int createClient();
-    void firstDraw() const;
+    void firstDraw(lambda::GameState *gamestate) const;
+    void drawFirstGamestateReceived(ENetEvent *net_event);
+    lambda::GameState getGamestateFromPacket(ENetEvent *net_event) const;
+    const std::string getStringFromPlayerAction(lambda::PlayerAction *playeraction) const;
 
 public:
     Client();
