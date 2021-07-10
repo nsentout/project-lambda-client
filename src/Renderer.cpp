@@ -52,13 +52,30 @@ void Renderer::init()
     }
 }
 
-void Renderer::drawPlayers(Position *positions, int nb_players) 
+void Renderer::drawPlayers(Position *positions, int nb_players, int current_player_index, bool current_player_is_moving) 
 {
     if (positions != nullptr) {
+        m_current_player_index = current_player_index;
+
+        if (current_player_is_moving) {
+            drawCurrentPlayer(positions[current_player_index].getX(), positions[current_player_index].getY());
+        }
+
+        // Draw other players
         for (int i = 0; i < nb_players; i++) {
-            drawPlayer(i, positions[i].getX(), positions[i].getY());
+            if (i != current_player_index)
+                drawPlayer(i, positions[i].getX(), positions[i].getY());
+        }
+
+        if (!current_player_is_moving) {
+            drawCurrentPlayer(positions[current_player_index].getX(), positions[current_player_index].getY());
         }
     }
+}
+
+void Renderer::drawCurrentPlayer(int x, int y)
+{
+    drawPlayer(m_current_player_index, x, y);
 }
 
 void Renderer::drawPlayer(int player_num, int x, int y)
@@ -85,15 +102,19 @@ void Renderer::drawPlayer(int player_num, int x, int y)
 
 void Renderer::drawRect(int rect_index, int new_x, int new_y, SDL_Color *color)
 {
+    // Clean the old position of the rect
     SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, 255);
     SDL_RenderFillRect(m_renderer, &m_rectangles[rect_index]);
 
+    // Add a new rectangle to the vector if there is a new player
     if (m_rectangles.size() == rect_index)
         m_rectangles.push_back({ new_x, new_y, 100, 100 });
     else
         m_rectangles[rect_index] = { new_x, new_y, 100, 100 };
 
+    // Draw the new position of the rect
     SDL_SetRenderDrawColor(m_renderer, color->r, color->g, color->b, color->a);
     SDL_RenderFillRect(m_renderer, &m_rectangles[rect_index]);
+
     SDL_RenderPresent(m_renderer);
 }

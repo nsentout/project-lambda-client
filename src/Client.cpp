@@ -96,10 +96,12 @@ int Client::connectToServer(int server_port)
 
         // Update the player's position
         lambda::GameState received_gamestate = getGamestateFromPacket(&net_event);
-        int player_id = received_gamestate.nb_players() - 1;
-        auto player_data = received_gamestate.players_data(player_id);
+        int player_index = received_gamestate.nb_players() - 1;
+        auto player_data = received_gamestate.players_data(player_index);
+        m_id = player_data.id();
         m_x = player_data.x();
         m_y = player_data.y();
+        m_is_moving = false;
 
         Renderer::getInstance()->init();
         handlePacketReceipt(&net_event);
@@ -156,6 +158,8 @@ void Client::handlePacketReceipt(ENetEvent *net_event)
     checkPacketFormat(&received_gamestate);
 
     drawPlayersFromGamestate(&received_gamestate);
+
+    m_is_moving = false;
 }
 
 void Client::drawPlayersFromGamestate(lambda::GameState *gamestate) const
@@ -163,14 +167,18 @@ void Client::drawPlayersFromGamestate(lambda::GameState *gamestate) const
     // Retrieve players positions and send them to the renderer
     lambda::PlayersData player_data;
     int nb_players = gamestate->nb_players();
+    int player_index = -1;
 
     Position positions[nb_players];
     for (int i = 0; i < nb_players; i++)
     {
+        if (m_id == gamestate->players_data(i).id())
+            player_index = i;
+
         player_data = gamestate->players_data(i);
         positions[i] = {player_data.x(), player_data.y()};
     }
-    Renderer::getInstance()->drawPlayers(positions, nb_players);
+    Renderer::getInstance()->drawPlayers(positions, nb_players, player_index, m_is_moving);
 }
 
 void Client::disconnect()
@@ -204,24 +212,28 @@ void Client::disconnect()
 void Client::moveUp()
 {
     m_y -= SPEED;
+    m_is_moving = true;
     sendPositionToServer(m_x, m_y);
 }
 
 void Client::moveDown()
 {
     m_y += SPEED;
+    m_is_moving = true;
     sendPositionToServer(m_x, m_y);
 }
 
 void Client::moveRight()
 {
     m_x += SPEED;
+    m_is_moving = true;
     sendPositionToServer(m_x, m_y);
 }
 
 void Client::moveLeft()
 {
     m_x -= SPEED;
+    m_is_moving = true;
     sendPositionToServer(m_x, m_y);
 }
 
