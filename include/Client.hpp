@@ -18,8 +18,8 @@ private:
 
     int createClient();
     void drawPlayersFromGamestate(lambda::GameState *gamestate) const;
-    void drawFirstGamestateReceived(ENetEvent *net_event);
     void checkPacketFormat(lambda::GameState *gamestate);
+    void handlePacketReceipt(ENetEvent *net_event);
     lambda::GameState getGamestateFromPacket(ENetEvent *net_event) const;
     const std::string getStringFromPlayerAction(lambda::PlayerAction *playeraction) const;
 

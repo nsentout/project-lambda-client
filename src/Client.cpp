@@ -92,7 +92,17 @@ int Client::connectToServer(int server_port)
     // Server sent game state and the player's positions
     if (server_response > 0)
     {
-        drawFirstGamestateReceived(&net_event);
+        puts("Connection to localhost:1234 accepted.");
+
+        // Update the player's position
+        lambda::GameState received_gamestate = getGamestateFromPacket(&net_event);
+        int player_id = received_gamestate.nb_players() - 1;
+        auto player_data = received_gamestate.players_data(player_id);
+        m_x = player_data.x();
+        m_y = player_data.y();
+
+        Renderer::getInstance()->init();
+        handlePacketReceipt(&net_event);
     }
     else
     {
@@ -102,43 +112,6 @@ int Client::connectToServer(int server_port)
     }
 
     return 1;
-}
-
-void Client::drawFirstGamestateReceived(ENetEvent *net_event)
-{
-    puts("Connection to localhost:1234 accepted.");
-
-    printf("A packet of length %u was received from %d on channel %u.\n",
-           net_event->packet->dataLength,
-           net_event->peer->address.host,
-           net_event->channelID);
-
-    lambda::GameState received_gamestate = getGamestateFromPacket(net_event);
-    printPacketDescription(&received_gamestate);
-
-    checkPacketFormat(&received_gamestate);
-
-    int player_id = received_gamestate.nb_players() - 1;
-    auto player_data = received_gamestate.players_data(player_id);
-    m_x = player_data.x();
-    m_y = player_data.y();
-
-    Renderer::getInstance()->init();
-    drawPlayersFromGamestate(&received_gamestate);
-}
-
-void Client::sendPositionToServer(int x, int y) const
-{
-    lambda::PlayerAction playerAction;
-    playerAction.set_new_x(x);
-    playerAction.set_new_y(y);
-
-    std::string packet_data = getStringFromPlayerAction(&playerAction);
-    ENetPacket *packet = enet_packet_create(packet_data.data(), packet_data.size(), ENET_PACKET_FLAG_RELIABLE);
-
-    // Send the packet to the peer over channel id 0.
-    enet_peer_send(m_server, 0, packet);
-    printf("Sending packet '(%d, %d)' to server.\n", playerAction.new_x(), playerAction.new_y());
 }
 
 /**
@@ -161,19 +134,7 @@ void Client::checkPacketBox()
         // which the packet was sent, and "packet" is the packet that was sent.
         case ENET_EVENT_TYPE_RECEIVE:
         {
-            printf("A packet of length %u was received from %d on channel %u.\n",
-                   net_event.packet->dataLength,
-                   net_event.peer->address.host,
-                   net_event.channelID);
-
-            lambda::GameState received_gamestate = getGamestateFromPacket(&net_event);
-
-            puts("Client received following packet :\n");
-            printPacketDescription(&received_gamestate);
-
-            checkPacketFormat(&received_gamestate);
-
-            drawPlayersFromGamestate(&received_gamestate);
+            handlePacketReceipt(&net_event);
 
             /* Clean up the packet now that we're done using it. */
             enet_packet_destroy(net_event.packet);
@@ -182,21 +143,51 @@ void Client::checkPacketBox()
     }
 }
 
+void Client::handlePacketReceipt(ENetEvent *net_event)
+{
+    printf("A packet of length %u was received from %d on channel %u.\n",
+           net_event->packet->dataLength,
+           net_event->peer->address.host,
+           net_event->channelID);
+
+    lambda::GameState received_gamestate = getGamestateFromPacket(net_event);
+    printPacketDescription(&received_gamestate);
+
+    checkPacketFormat(&received_gamestate);
+
+    drawPlayersFromGamestate(&received_gamestate);
+}
+
+void Client::drawPlayersFromGamestate(lambda::GameState *gamestate) const
+{
+    // Retrieve players positions and send them to the renderer
+    lambda::PlayersData player_data;
+    int nb_players = gamestate->nb_players();
+
+    Position positions[nb_players];
+    for (int i = 0; i < nb_players; i++)
+    {
+        player_data = gamestate->players_data(i);
+        positions[i] = {player_data.x(), player_data.y()};
+    }
+    Renderer::getInstance()->drawPlayers(positions, nb_players);
+}
+
 void Client::disconnect()
 {
-    ENetEvent event;
+    ENetEvent net_event;
 
     enet_peer_disconnect(m_server, 0);
 
     /* Allow up to 3 seconds for the disconnect to succeed
     * and drop any received packets.
     */
-    while (enet_host_service(m_host, &event, 3000) > 0)
+    while (enet_host_service(m_host, &net_event, 3000) > 0)
     {
-        switch (event.type)
+        switch (net_event.type)
         {
         case ENET_EVENT_TYPE_RECEIVE:
-            enet_packet_destroy(event.packet);
+            enet_packet_destroy(net_event.packet);
             break;
         case ENET_EVENT_TYPE_DISCONNECT:
             puts("Disconnection succeeded.");
@@ -208,22 +199,6 @@ void Client::disconnect()
     enet_peer_reset(m_server);
 
     enet_host_destroy(m_host);
-}
-
-void Client::drawPlayersFromGamestate(lambda::GameState *gamestate) const
-{
-    // Retrieve players positions and send them to the renderer
-    lambda::PlayersData player_data;
-    int nb_players = gamestate->nb_players();
-
-    Position positions[nb_players];
-    //Position *positions = new Position[nb_players]();
-    for (int i = 0; i < nb_players; i++)
-    {
-        player_data = gamestate->players_data(i);
-        positions[i] = {player_data.x(), player_data.y()};
-    }
-    Renderer::getInstance()->drawPlayers(positions, nb_players);
 }
 
 void Client::moveUp()
@@ -248,6 +223,20 @@ void Client::moveLeft()
 {
     m_x -= SPEED;
     sendPositionToServer(m_x, m_y);
+}
+
+void Client::sendPositionToServer(int x, int y) const
+{
+    lambda::PlayerAction playerAction;
+    playerAction.set_new_x(x);
+    playerAction.set_new_y(y);
+
+    std::string packet_data = getStringFromPlayerAction(&playerAction);
+    ENetPacket *packet = enet_packet_create(packet_data.data(), packet_data.size(), ENET_PACKET_FLAG_RELIABLE);
+
+    // Send the packet to the peer over channel id 0.
+    enet_peer_send(m_server, 0, packet);
+    printf("Sending packet '(%d, %d)' to server.\n", playerAction.new_x(), playerAction.new_y());
 }
 
 /**
