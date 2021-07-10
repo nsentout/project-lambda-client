@@ -13,14 +13,13 @@ private:
     ENetPeer *m_server;
     ENetAddress *m_server_address;
 
-    int m_player_id;
-
     int m_x;
     int m_y;
 
     int createClient();
-    void firstDraw(lambda::GameState *gamestate) const;
+    void drawPlayersFromGamestate(lambda::GameState *gamestate) const;
     void drawFirstGamestateReceived(ENetEvent *net_event);
+    void checkPacketFormat(lambda::GameState *gamestate);
     lambda::GameState getGamestateFromPacket(ENetEvent *net_event) const;
     const std::string getStringFromPlayerAction(lambda::PlayerAction *playeraction) const;
 
@@ -36,11 +35,8 @@ public:
     int connectToServer(int server_port);
     void disconnect();
 
-    void sendPacket(const char *packetContent) const;
-    void sendPositionToServer(int x, int y);
-    void checkPacketBox(/*char *packetReceived*/);
-
-    int getPlayerId() const;
+    void sendPositionToServer(int x, int y) const;
+    void checkPacketBox();
 };
 
 #endif

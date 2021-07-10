@@ -52,11 +52,8 @@ int Client::createClient()
 
 int Client::connectToServer(int server_port)
 {
-    /* Connects to a server (or host) */
+    // Set server address
     m_server_address = new ENetAddress();
-    ENetEvent event;
-
-    /* Connect to localhost:1234. */
     enet_address_set_host(m_server_address, "localhost");
     m_server_address->port = server_port;
 
@@ -67,13 +64,15 @@ int Client::connectToServer(int server_port)
         fprintf(stderr, "No available peers for initiating an ENet connection.\n");
         return -1;
     }
+
     /* Wait up to 5 seconds for the connection attempt to succeed. */
-    if (enet_host_service(m_host, &event, CONNECTION_TIMEOUT) > 0 &&
-        event.type == ENET_EVENT_TYPE_CONNECT)
+    ENetEvent net_event;
+    if (enet_host_service(m_host, &net_event, CONNECTION_TIMEOUT) > 0 &&
+        net_event.type == ENET_EVENT_TYPE_CONNECT)
     {
         puts("Attempt to connecting to localhost:1234 succeeded. Waiting for server response ...");
         /* Store any relevant server information here. */
-        event.peer->data = (void *)"SERVER";
+        net_event.peer->data = (void *)"SERVER";
     }
     else
     {
@@ -88,12 +87,12 @@ int Client::connectToServer(int server_port)
     enet_host_flush(m_host); // Why does this have to be here for the server to receive the connection attempt ?
 
     //int response = enet_host_service(m_host, &event, 1000);
-    int response = enet_host_service(m_host, &event, CONNECTION_TIMEOUT);
+    int server_response = enet_host_service(m_host, &net_event, CONNECTION_TIMEOUT);
 
     // Server sent game state and the player's positions
-    if (response > 0)
+    if (server_response > 0)
     {
-        drawFirstGamestateReceived(&event);
+        drawFirstGamestateReceived(&net_event);
     }
     else
     {
@@ -114,56 +113,21 @@ void Client::drawFirstGamestateReceived(ENetEvent *net_event)
            net_event->peer->address.host,
            net_event->channelID);
 
-    lambda::GameState gamestate_received = getGamestateFromPacket(net_event);
-    printPacketDescription(&gamestate_received);
+    lambda::GameState received_gamestate = getGamestateFromPacket(net_event);
+    printPacketDescription(&received_gamestate);
 
-    if (gamestate_received.nb_players() < 1)
-    {
-        printf("Received malformed package.\n");
-        disconnect();
-        exit(-1);
-    }
+    checkPacketFormat(&received_gamestate);
 
-    m_player_id = gamestate_received.nb_players() - 1;
-
-    auto player_data = gamestate_received.players_data(m_player_id);
+    int player_id = received_gamestate.nb_players() - 1;
+    auto player_data = received_gamestate.players_data(player_id);
     m_x = player_data.x();
     m_y = player_data.y();
 
     Renderer::getInstance()->init();
-    firstDraw(&gamestate_received);
+    drawPlayersFromGamestate(&received_gamestate);
 }
 
-void Client::firstDraw(lambda::GameState *gamestate) const
-{
-    int nb_players = gamestate->nb_players();
-    Position *positions = new Position[nb_players]();
-    for (int i = 0; i < nb_players; i++)
-    {
-        positions[i] = {gamestate->players_data(i).x(), gamestate->players_data(i).y()};
-    }
-
-    Renderer::getInstance()->drawPlayers(positions, nb_players);
-    delete positions;
-}
-
-lambda::GameState Client::getGamestateFromPacket(ENetEvent *net_event) const
-{
-    lambda::GameState gamestate;
-    std::istringstream unserialized_gamestate(reinterpret_cast<char const *>(net_event->packet->data));
-    gamestate.ParseFromIstream(&unserialized_gamestate);
-    return gamestate;
-}
-
-const std::string Client::getStringFromPlayerAction(lambda::PlayerAction *playeraction) const
-{
-    std::string serialized_playeraction;
-    playeraction->SerializeToString(&serialized_playeraction);
-    return serialized_playeraction;
-}
-
-
-void Client::sendPositionToServer(int x, int y)
+void Client::sendPositionToServer(int x, int y) const
 {
     lambda::PlayerAction playerAction;
     playerAction.set_new_x(x);
@@ -202,33 +166,17 @@ void Client::checkPacketBox()
                    net_event.peer->address.host,
                    net_event.channelID);
 
-            lambda::GameState gamestate = getGamestateFromPacket(&net_event);
+            lambda::GameState received_gamestate = getGamestateFromPacket(&net_event);
 
             puts("Client received following packet :\n");
-            printPacketDescription(&gamestate);
+            printPacketDescription(&received_gamestate);
 
-            if (gamestate.nb_players() < 1)
-            {
-                printf("Received malformed package.\n");
-                disconnect();
-                exit(-1);
-            }
+            checkPacketFormat(&received_gamestate);
 
-            // Retrieve players positions and send them to the renderer
-            lambda::PlayersData player_data;
-            int nb_players = gamestate.nb_players();
-            //Position positions[nb_players];
-            Position *positions = new Position[nb_players]();
-            for (int i = 0; i < nb_players; i++)
-            {
-                player_data = gamestate.players_data(i);
-                positions[i] = {player_data.x(), player_data.y()};
-            }
-            Renderer::getInstance()->drawPlayers(positions, nb_players);
+            drawPlayersFromGamestate(&received_gamestate);
 
             /* Clean up the packet now that we're done using it. */
-            //enet_packet_destroy(net_event.packet);
-            delete positions;
+            enet_packet_destroy(net_event.packet);
         }
         }
     }
@@ -262,6 +210,22 @@ void Client::disconnect()
     enet_host_destroy(m_host);
 }
 
+void Client::drawPlayersFromGamestate(lambda::GameState *gamestate) const
+{
+    // Retrieve players positions and send them to the renderer
+    lambda::PlayersData player_data;
+    int nb_players = gamestate->nb_players();
+
+    Position positions[nb_players];
+    //Position *positions = new Position[nb_players]();
+    for (int i = 0; i < nb_players; i++)
+    {
+        player_data = gamestate->players_data(i);
+        positions[i] = {player_data.x(), player_data.y()};
+    }
+    Renderer::getInstance()->drawPlayers(positions, nb_players);
+}
+
 void Client::moveUp()
 {
     m_y -= SPEED;
@@ -286,7 +250,30 @@ void Client::moveLeft()
     sendPositionToServer(m_x, m_y);
 }
 
-int Client::getPlayerId() const
+/**
+ * Disconnect the client and close the window if the packet received is malformed
+ */
+void Client::checkPacketFormat(lambda::GameState *gamestate)
 {
-    return m_player_id;
+    if (gamestate->nb_players() < 1)
+    {
+        printf("Received malformed packet.\n");
+        disconnect();
+        exit(-1);
+    }
+}
+
+lambda::GameState Client::getGamestateFromPacket(ENetEvent *net_event) const
+{
+    lambda::GameState gamestate;
+    std::istringstream unserialized_gamestate(reinterpret_cast<char const *>(net_event->packet->data));
+    gamestate.ParseFromIstream(&unserialized_gamestate);
+    return gamestate;
+}
+
+const std::string Client::getStringFromPlayerAction(lambda::PlayerAction *playeraction) const
+{
+    std::string serialized_playeraction;
+    playeraction->SerializeToString(&serialized_playeraction);
+    return serialized_playeraction;
 }
