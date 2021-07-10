@@ -22,7 +22,7 @@ private:
     void drawPlayersFromGamestate(lambda::GameState *gamestate) const;
     void checkPacketFormat(lambda::GameState *gamestate);
     void handlePacketReceipt(ENetEvent *net_event);
-    lambda::GameState getGamestateFromPacket(ENetEvent *net_event) const;
+    lambda::GameState getGamestateFromPacket(ENetPacket *packet) const;
     const std::string getStringFromPlayerAction(lambda::PlayerAction *playeraction) const;
 
 public:

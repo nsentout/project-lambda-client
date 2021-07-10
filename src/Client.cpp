@@ -95,7 +95,7 @@ int Client::connectToServer(int server_port)
         puts("Connection to localhost:1234 accepted.");
 
         // Update the player's position
-        lambda::GameState received_gamestate = getGamestateFromPacket(&net_event);
+        lambda::GameState received_gamestate = getGamestateFromPacket(net_event.packet);
         int player_index = received_gamestate.nb_players() - 1;
         auto player_data = received_gamestate.players_data(player_index);
         m_id = player_data.id();
@@ -152,7 +152,7 @@ void Client::handlePacketReceipt(ENetEvent *net_event)
            net_event->peer->address.host,
            net_event->channelID);
 
-    lambda::GameState received_gamestate = getGamestateFromPacket(net_event);
+    lambda::GameState received_gamestate = getGamestateFromPacket(net_event->packet);
     printPacketDescription(&received_gamestate);
 
     checkPacketFormat(&received_gamestate);
@@ -264,11 +264,10 @@ void Client::checkPacketFormat(lambda::GameState *gamestate)
     }
 }
 
-lambda::GameState Client::getGamestateFromPacket(ENetEvent *net_event) const
+lambda::GameState Client::getGamestateFromPacket(ENetPacket *packet) const
 {
     lambda::GameState gamestate;
-    std::istringstream unserialized_gamestate(reinterpret_cast<char const *>(net_event->packet->data));
-    gamestate.ParseFromIstream(&unserialized_gamestate);
+    gamestate.ParseFromArray(packet->data, packet->dataLength);
     return gamestate;
 }
 
