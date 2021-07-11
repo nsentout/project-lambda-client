@@ -14,7 +14,7 @@ private:
     static Renderer *m_instance;
 
     /**
-     * Current player index in the vector of drawn rectangles
+     * Current player index in the vector of drawn rectangles   //TODO: not used atm
      */
     int m_current_player_index;
 
@@ -23,16 +23,18 @@ private:
     std::vector<SDL_Rect> m_rectangles;
 
     Renderer();
+    void drawPlayer(int player_num, int x, int y);
+    void drawCurrentPlayer(int x, int y);
+    void drawRect(int rect_index, int new_x, int new_y, SDL_Color *color);
+    void clearAllRects();
 
 public:
     ~Renderer();
     static Renderer *getInstance();
 
     void init();
-    void drawPlayers(Position *positions, int length, int current_player_index, bool current_player_is_moving);
-    void drawPlayer(int player_num, int x, int y);
-    void drawCurrentPlayer(int x, int y);
-    void drawRect(int rect_index, int new_x, int new_y, SDL_Color *color);
+    void clearPlayer(int player_index);
+    void drawPlayers(Position *positions, int length, int current_player_index);
 };
 
 #endif

@@ -16,7 +16,6 @@ private:
     int m_id;
     int m_x;
     int m_y;
-    bool m_is_moving;
 
     int createClient();
     void drawPlayersFromGamestate(lambda::GameState *gamestate) const;

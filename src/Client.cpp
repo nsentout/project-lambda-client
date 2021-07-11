@@ -101,7 +101,6 @@ int Client::connectToServer(int server_port)
         m_id = player_data.id();
         m_x = player_data.x();
         m_y = player_data.y();
-        m_is_moving = false;
 
         Renderer::getInstance()->init();
         handlePacketReceipt(&net_event);
@@ -128,7 +127,7 @@ void Client::checkPacketBox()
         {
         case ENET_EVENT_TYPE_CONNECT:
         {
-            printf("Someone connected\n");
+            printf("Someone connected (why ?)\n");
             break;
         }
 
@@ -158,12 +157,14 @@ void Client::handlePacketReceipt(ENetEvent *net_event)
     checkPacketFormat(&received_gamestate);
 
     drawPlayersFromGamestate(&received_gamestate);
-
-    m_is_moving = false;
 }
 
 void Client::drawPlayersFromGamestate(lambda::GameState *gamestate) const
 {
+    if (gamestate->has_player_disconnected_id()) {
+        Renderer::getInstance()->clearPlayer(gamestate->player_disconnected_id());
+    }
+
     // Retrieve players positions and send them to the renderer
     lambda::PlayersData player_data;
     int nb_players = gamestate->nb_players();
@@ -178,7 +179,7 @@ void Client::drawPlayersFromGamestate(lambda::GameState *gamestate) const
         player_data = gamestate->players_data(i);
         positions[i] = {player_data.x(), player_data.y()};
     }
-    Renderer::getInstance()->drawPlayers(positions, nb_players, player_index, m_is_moving);
+    Renderer::getInstance()->drawPlayers(positions, nb_players, player_index);
 }
 
 void Client::disconnect()
@@ -212,28 +213,24 @@ void Client::disconnect()
 void Client::moveUp()
 {
     m_y -= SPEED;
-    m_is_moving = true;
     sendPositionToServer(m_x, m_y);
 }
 
 void Client::moveDown()
 {
     m_y += SPEED;
-    m_is_moving = true;
     sendPositionToServer(m_x, m_y);
 }
 
 void Client::moveRight()
 {
     m_x += SPEED;
-    m_is_moving = true;
     sendPositionToServer(m_x, m_y);
 }
 
 void Client::moveLeft()
 {
     m_x -= SPEED;
-    m_is_moving = true;
     sendPositionToServer(m_x, m_y);
 }
 

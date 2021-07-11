@@ -14,4 +14,6 @@ message GameState
 	// TODO: type message
 	int32 nb_players = 1;
 	repeated PlayersData players_data = 2;
+
+	optional int32 player_disconnected_id = 3;
 }
