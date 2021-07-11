@@ -9,6 +9,7 @@
 
 #define FPS_CAP 60
 #define POLL_INTERVAL_MS (1000.0 / FPS_CAP)
+#define DEFAULT_IP "localhost"
 #define DEFAULT_PORT 1234
 
 int main(int argc, char **argv)
@@ -19,8 +20,20 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
+    const char* server_ip;
+    int server_port;
+    if (argc > 1)
+        server_ip = argv[1];
+    else
+        server_ip = DEFAULT_IP;
+
+    if (argc > 2)
+        server_port = atoi(argv[2]);
+    else
+        server_port = DEFAULT_PORT;
+
     Client player;
-    int server_response = player.connectToServer(DEFAULT_PORT);
+    int server_response = player.connectToServer(server_ip, server_port);
     if (server_response < 0)
     {
         return EXIT_FAILURE;

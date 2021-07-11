@@ -6,7 +6,6 @@
 
 #include <sstream>
 
-#define HOST_NAME "localhost"
 //#define CONNECTION_TIMEOUT 5000
 #define CONNECTION_TIMEOUT 100000
 #define NUMBER_CHANNELS 2
@@ -50,11 +49,11 @@ int Client::createClient()
     return 1;
 }
 
-int Client::connectToServer(int server_port)
+int Client::connectToServer(const char* server_ip, int server_port)
 {
     // Set server address
     m_server_address = new ENetAddress();
-    enet_address_set_host(m_server_address, "localhost");
+    enet_address_set_host(m_server_address, server_ip);
     m_server_address->port = server_port;
 
     /* Initiate the connection, allocating the two channels 0 and 1. */
@@ -70,7 +69,7 @@ int Client::connectToServer(int server_port)
     if (enet_host_service(m_host, &net_event, CONNECTION_TIMEOUT) > 0 &&
         net_event.type == ENET_EVENT_TYPE_CONNECT)
     {
-        puts("Attempt to connecting to localhost:1234 succeeded. Waiting for server response ...");
+        printf("Attempt to connecting to %s:%d succeeded. Waiting for server response ...\n", server_ip, server_port);
         /* Store any relevant server information here. */
         net_event.peer->data = (void *)"SERVER";
     }
@@ -92,7 +91,7 @@ int Client::connectToServer(int server_port)
     // Server sent game state and the player's positions
     if (server_response > 0)
     {
-        puts("Connection to localhost:1234 accepted.");
+        printf("Connection to %s:%d accepted.\n", server_ip, server_port);
 
         // Update the player's position
         lambda::GameState received_gamestate = getGamestateFromPacket(net_event.packet);

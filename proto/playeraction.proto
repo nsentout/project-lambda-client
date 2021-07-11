@@ -4,7 +4,6 @@ package lambda;
 
 message PlayerAction
 {
-	// TODO: type message
 	int32 new_x = 1;
-    int32 new_y = 2;
+	int32 new_y = 2;
 }

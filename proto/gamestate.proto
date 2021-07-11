@@ -11,7 +11,6 @@ message PlayersData
 
 message GameState
 {
-	// TODO: type message
 	int32 nb_players = 1;
 	repeated PlayersData players_data = 2;
 

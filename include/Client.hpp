@@ -33,7 +33,7 @@ public:
     void moveRight();
     void moveLeft();
 
-    int connectToServer(int server_port);
+    int connectToServer(const char* server_ip, int server_port);
     void disconnect();
 
     void sendPositionToServer(int x, int y) const;
