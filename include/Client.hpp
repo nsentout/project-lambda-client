@@ -3,8 +3,8 @@
 
 #include <enet/enet.h>
 
-#include "../../proto/gamestate.pb.h"
-#include "../../proto/playeraction.pb.h"
+#include "gamestate.pb.h"
+#include "playeraction.pb.h"
 
 class Client
 {

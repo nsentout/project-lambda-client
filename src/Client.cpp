@@ -145,7 +145,7 @@ void Client::checkPacketBox()
 
 void Client::handlePacketReceipt(ENetEvent *net_event)
 {
-    printf("A packet of length %u was received from %d on channel %u.\n",
+    printf("A packet of length %lu was received from %d on channel %u.\n",
            net_event->packet->dataLength,
            net_event->peer->address.host,
            net_event->channelID);

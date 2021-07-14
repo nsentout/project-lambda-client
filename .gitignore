@@ -46,5 +46,5 @@ cmake_install.cmake
 CMakeCache.txt
 
 # Protobuf compiled headers and sources
-proto/*.cc
-proto/*.h
+**.cc
+**.h

@@ -18,5 +18,9 @@ include_directories(include ${SDL2_INCLUDE_DIRS} ${SDL2_IMAGE_INCLUDE_DIRS} ${SD
 file(GLOB SOURCES src/*.cpp src/*.c proto/*.cc)
 file(GLOB HEADERS include/*.hpp include/*.h proto/*.h)
 
-add_executable(client ${SOURCES} ${HEADERS})
+# Compile proto files
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS proto/gamestate.proto proto/playeraction.proto)
+
+add_executable(client ${SOURCES} ${HEADERS} ${PROTO_SRCS} ${PROTO_HDRS})
 target_link_libraries(client ${SDL2_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} ${SDL2_TTF_LIBRARIES} ${ENET_LIBRARIES} ${Protobuf_LIBRARIES})
