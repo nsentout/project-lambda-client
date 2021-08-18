@@ -5,7 +5,7 @@
 #include <iostream>
 
 #include "Client.hpp"
-#include "Renderer.hpp"
+#include "render/Renderer.hpp"
 
 #define FPS_CAP 60
 #define POLL_INTERVAL_MS (1000.0 / FPS_CAP)
@@ -39,69 +39,23 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    SDL_Event event;
-    bool quit = false;
-    const Uint8 *state = SDL_GetKeyboardState(NULL);
+    Renderer *renderer = Renderer::getInstance();
 
     int framerate = 0;
     auto timer_first_frame_per_second = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed_seconds;
 
-    while (!quit)
+    while (!glfwWindowShouldClose(renderer->getWindow()))
     {
         player.checkPacketBox();
 
-        while (SDL_PollEvent(&event) != 0)
-        {
-            switch (event.type)
-            {
-            case SDL_KEYDOWN:
-            {
-                SDL_Keycode keyPressed = event.key.keysym.sym;
+        // input
+        // -----
+        renderer->processInputs(&player);
 
-                if (keyPressed == SDLK_SPACE && !state[SDLK_SPACE])
-                {
-                    std::cout << "pressed space" << std::endl;
-                }
-
-                if (keyPressed == SDLK_LEFT)
-                {
-                    std::cout << "pressed LEFT" << std::endl;
-                    player.moveLeft();
-                }
-
-                if (keyPressed == SDLK_RIGHT)
-                {
-                    std::cout << "pressed RIGHT" << std::endl;
-                    player.moveRight();
-                }
-
-                if (keyPressed == SDLK_UP)
-                {
-                    std::cout << "pressed UP" << std::endl;
-                    player.moveUp();
-                }
-
-                if (keyPressed == SDLK_DOWN)
-                {
-                    std::cout << "pressed DOWN" << std::endl;
-                    player.moveDown();
-                }
-
-                if (keyPressed == SDLK_ESCAPE)
-                {
-                    quit = true;
-                }
-                break;
-            }
-
-            case SDL_QUIT:
-            {
-                quit = true;
-                break;
-            }
-            }
-        }
+        // render
+        // ------
+        renderer->drawScene();
 
         usleep(POLL_INTERVAL_MS * 1000);    //TODO ? : soustraitre au temps du sleep le temps passé à traiter le paquet et les inputs ?
         framerate++;
@@ -116,6 +70,8 @@ int main(int argc, char **argv)
     }
 
     enet_deinitialize();
+
+    delete renderer;
 
     return EXIT_SUCCESS;
 }

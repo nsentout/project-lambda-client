@@ -2,7 +2,7 @@
 #include <string.h>
 
 #include "Client.hpp"
-#include "Renderer.hpp"
+#include "render/Renderer.hpp"
 
 #include <sstream>
 
