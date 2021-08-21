@@ -9,7 +9,7 @@
 //#define CONNECTION_TIMEOUT 5000
 #define CONNECTION_TIMEOUT 100000
 #define NUMBER_CHANNELS 2
-#define SPEED 100
+#define SPEED 25
 
 Client::Client() : m_host(nullptr), m_server(nullptr)
 {
@@ -101,7 +101,6 @@ int Client::connectToServer(const char* server_ip, int server_port)
         m_x = player_data.x();
         m_y = player_data.y();
 
-        Renderer::getInstance()->init();
         handlePacketReceipt(&net_event);
     }
     else
@@ -155,15 +154,11 @@ void Client::handlePacketReceipt(ENetEvent *net_event)
 
     checkPacketFormat(&received_gamestate);
 
-    drawPlayersFromGamestate(&received_gamestate);
+    updateRenderData(&received_gamestate);
 }
 
-void Client::drawPlayersFromGamestate(lambda::GameState *gamestate) const
+void Client::updateRenderData(lambda::GameState *gamestate) const
 {
-    if (gamestate->has_player_disconnected_id()) {
-        Renderer::getInstance()->clearPlayer(gamestate->player_disconnected_id());
-    }
-
     // Retrieve players positions and send them to the renderer
     lambda::PlayersData player_data;
     int nb_players = gamestate->nb_players();
@@ -178,7 +173,7 @@ void Client::drawPlayersFromGamestate(lambda::GameState *gamestate) const
         player_data = gamestate->players_data(i);
         positions[i] = {player_data.x(), player_data.y()};
     }
-    Renderer::getInstance()->drawPlayers(positions, nb_players, player_index);
+    Renderer::getInstance()->updateRenderData(positions, nb_players, player_index);
 }
 
 void Client::disconnect()

@@ -18,7 +18,7 @@ private:
     int m_y;
 
     int createClient();
-    void drawPlayersFromGamestate(lambda::GameState *gamestate) const;
+    void updateRenderData(lambda::GameState *gamestate) const;
     void checkPacketFormat(lambda::GameState *gamestate);
     void handlePacketReceipt(ENetEvent *net_event);
     lambda::GameState getGamestateFromPacket(ENetPacket *packet) const;

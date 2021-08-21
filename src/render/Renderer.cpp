@@ -1,6 +1,8 @@
-#include "render/Renderer.hpp"
 #include "Color.h"
-#include "const.h"
+#include "render/Triangle.hpp"
+#include "render/Rectangle.hpp"
+#include "render/Renderer.hpp"
+#include "render/ShaderRegistry.hpp"
 
 #include <chrono>
 
@@ -20,8 +22,8 @@ Renderer::Renderer()
 
 Renderer::~Renderer()
 {
-    for (auto triangle : m_triangles) {
-        delete triangle;
+    for (auto gameobject : m_gameobjects) {
+        delete gameobject;
     }
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
@@ -68,9 +70,24 @@ int Renderer::init()
         exit(1);
     }
 
-    Triangle *triangle = new Triangle();
-    triangle->init();
-    m_triangles.push_back(triangle);
+    // Uniforms
+    glm::mat4 modelMatrix = glm::mat4(1.0f);
+    glm::mat4 viewMatrix = glm::mat4(1.0f);
+    glm::mat4 projectionMatrix = projectionMatrix= glm::ortho(0.0f, static_cast<GLfloat>(SCREEN_WIDTH), static_cast<GLfloat>(SCREEN_HEIGHT), 0.0f, -1.0f, 1.0f);
+
+    Shader *basic_shader = ShaderRegistry::getInstance()->getBasicShader();
+    basic_shader->use();
+    int modelMatrixLocation = basic_shader->getUniformLocation("model");
+    int viewMatrixLocation = basic_shader->getUniformLocation("view");
+    int projectionMatrixLocation = basic_shader->getUniformLocation("projection");
+
+    basic_shader->setUniformMatrix4fv(modelMatrixLocation, modelMatrix);
+    basic_shader->setUniformMatrix4fv(viewMatrixLocation, viewMatrix);
+    basic_shader->setUniformMatrix4fv(projectionMatrixLocation, projectionMatrix);
+
+    GameObject *player = new Rectangle();
+    player->init();
+    m_gameobjects.push_back(player);
 
     return 0;
 }
@@ -83,8 +100,8 @@ void Renderer::drawScene()
     glClear(GL_COLOR_BUFFER_BIT);
 
     // render the triangle
-    for (auto triangle : m_triangles) {
-        triangle->draw();
+    for (auto gameobject : m_gameobjects) {
+        gameobject->draw();
     }
 
     // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -95,43 +112,30 @@ void Renderer::drawScene()
 
 void Renderer::clearPlayer(int player_index)
 {
-    m_triangles.erase(m_triangles.begin() + player_index);
+    m_gameobjects.erase(m_gameobjects.begin() + player_index);
 }
 
-void Renderer::clearAllRects()
+void Renderer::clearAllPlayers()
 {
-
+    //m_gameobjects.clear();
 }
 
-void Renderer::drawPlayers(Position *positions, int nb_players, int current_player_index)
+void Renderer::updateRenderData(Position *positions, int nb_players, int current_player_index)
 {
     if (positions != nullptr) {
-        clearAllRects();
+        clearAllPlayers();
         for (int i = 0; i < nb_players; i++) {
             // Add a new rectangle to the vector if there is a new player
-            if (m_triangles.size() == i) {
-                Triangle *triangle = new Triangle();
-                triangle->init();
-                triangle->setXY(positions[i].x, positions[i].y);
-                m_triangles.push_back(triangle);
+            if (m_gameobjects.size() == i) {
+                GameObject *player = new Rectangle();
+                player->init();
+                player->setXY(positions[i].x, positions[i].y);
+                m_gameobjects.push_back(player);
             }
             else
-                m_triangles[i]->setXY(positions[i].x, positions[i].y);
-
-            drawPlayer(i, positions[i].x, positions[i].y);
+                m_gameobjects[i]->setXY(positions[i].x, positions[i].y);
         }
-
     }
-}
-
-void Renderer::drawPlayer(int player_num, int x, int y)
-{
-
-}
-
-void Renderer::drawRect(int rect_index, int new_x, int new_y /*, SDL_Color *color*/)
-{
-
 }
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly

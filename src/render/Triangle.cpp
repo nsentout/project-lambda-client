@@ -1,14 +1,8 @@
 #include "render/Triangle.hpp"
+#include "render/ShaderRegistry.hpp"
 
 #include <stdlib.h>
 #include <string.h>
-#include "const.h"
-#include <iostream>
-#include <fstream>
-#include <sstream>
-
-const char *vertexShaderPath = "shaders/shader.vs";
-const char *fragmentShaderPath = "shaders/shader.fs";
 
 Triangle::Triangle()
 {
@@ -23,19 +17,13 @@ Triangle::Triangle()
     GLfloat default_vertices[] = {
         // positions         // colors
         0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  // bottom right
-        -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, // bottom left
+        -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,  // bottom left
         0.0f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f   // top 
     };
 
     memcpy(m_vertices, default_vertices, sizeof(default_vertices));
-}
 
-Triangle::~Triangle()
-{
-    free(m_vertices);
-
-    glDeleteVertexArrays(1, &m_vao);
-    glDeleteBuffers(1, &m_vbo);
+    m_shader = ShaderRegistry::getInstance()->getBasicShader();
 }
 
 void Triangle::init()
@@ -54,16 +42,18 @@ void Triangle::init()
     // color attribute
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, m_stride * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-
-    compileShaders(vertexShaderPath, fragmentShaderPath);
 }
 
 void Triangle::draw() const
 {
-    glUseProgram(m_program_id);
+    m_shader->use();
     glBindVertexArray(m_vao);
     glDrawArrays(GL_TRIANGLES, 0, 3);
-    //glBindVertexArray(0);
+}
+
+void Triangle::erase() const
+{
+
 }
 
 void Triangle::moveX(float movement)
@@ -88,6 +78,9 @@ void Triangle::moveY(float movement)
 
 void Triangle::setXY(float x, float y)
 {
+    position.x = x;
+    position.y = y;
+
     float normalized_x =  x / SCREEN_WIDTH;
     float normalized_y =  (-y) / SCREEN_HEIGHT;
 
@@ -103,83 +96,12 @@ void Triangle::setXY(float x, float y)
     glBufferSubData(GL_ARRAY_BUFFER, 0, m_vertices_size, m_vertices);
 }
 
-void checkCompileErrors(unsigned int shader, std::string type)
+float Triangle::getX()
 {
-    int success;
-    char infoLog[1024];
-    if (type != "PROGRAM")
-    {
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-        if (!success)
-        {
-            glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-            std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n"
-                      << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
-        }
-    }
-    else
-    {
-        glGetProgramiv(shader, GL_LINK_STATUS, &success);
-        if (!success)
-        {
-            glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-            std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n"
-                      << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
-        }
-    }
+    return 0.0f;
 }
 
-void Triangle::compileShaders(const char *vertexPath, const char *fragmentPath)
+float Triangle::getY()
 {
-    // 1. retrieve the vertex/fragment source code from filePath
-    std::string vertexCode;
-    std::string fragmentCode;
-    std::ifstream vShaderFile;
-    std::ifstream fShaderFile;
-    // ensure ifstream objects can throw exceptions:
-    vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-    fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-    try
-    {
-        // open files
-        vShaderFile.open(vertexPath);
-        fShaderFile.open(fragmentPath);
-        std::stringstream vShaderStream, fShaderStream;
-        // read file's buffer contents into streams
-        vShaderStream << vShaderFile.rdbuf();
-        fShaderStream << fShaderFile.rdbuf();
-        // close file handlers
-        vShaderFile.close();
-        fShaderFile.close();
-        // convert stream into string
-        vertexCode = vShaderStream.str();
-        fragmentCode = fShaderStream.str();
-    }
-    catch (std::ifstream::failure &e)
-    {
-        std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
-    }
-    const char *vShaderCode = vertexCode.c_str();
-    const char *fShaderCode = fragmentCode.c_str();
-    // 2. compile shaders
-    unsigned int vertex, fragment;
-    // vertex shader
-    vertex = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex, 1, &vShaderCode, NULL);
-    glCompileShader(vertex);
-    checkCompileErrors(vertex, "VERTEX");
-    // fragment Shader
-    fragment = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment, 1, &fShaderCode, NULL);
-    glCompileShader(fragment);
-    checkCompileErrors(fragment, "FRAGMENT");
-    // shader Program
-    m_program_id = glCreateProgram();
-    glAttachShader(m_program_id, vertex);
-    glAttachShader(m_program_id, fragment);
-    glLinkProgram(m_program_id);
-    checkCompileErrors(m_program_id, "PROGRAM");
-    // delete the shaders as they're linked into our program now and no longer necessary
-    glDeleteShader(vertex);
-    glDeleteShader(fragment);
+    return 0.0f;
 }

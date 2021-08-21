@@ -1,17 +1,23 @@
-#ifndef TRIANGLE_HPP
-#define TRIANGLE_HPP
+#ifndef RECTANGLE_HPP
+#define RECTANGLE_HPP
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#include "GameObject.hpp"
+#include "render/GameObject.hpp"
+#include "render/ShaderRegistry.hpp"
+
 #include "Position.h"
 #include "Color.h"
 
-class Triangle : public GameObject
+class Rectangle : public GameObject
 {
+private:
+    float m_width;
+    float m_height;
 public:
-    Triangle();
+    Rectangle();
+    Rectangle(float width, float height);
 
     void init() override;
     void draw() const override;

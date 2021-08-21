@@ -32,14 +32,15 @@ int main(int argc, char **argv)
     else
         server_port = DEFAULT_PORT;
 
+    Renderer *renderer = Renderer::getInstance();
+    renderer->init();
+
     Client player;
     int server_response = player.connectToServer(server_ip, server_port);
     if (server_response < 0)
     {
         return EXIT_FAILURE;
     }
-
-    Renderer *renderer = Renderer::getInstance();
 
     int framerate = 0;
     auto timer_first_frame_per_second = std::chrono::system_clock::now();

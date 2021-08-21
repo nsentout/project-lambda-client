@@ -3,10 +3,11 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "Position.h"
 #include "Client.hpp"
-#include "Triangle.hpp"
+#include "GameObject.hpp"
 
 #include <iostream>
 #include <vector>
@@ -17,13 +18,11 @@ private:
     static Renderer *m_instance;
 
     GLFWwindow *m_window;
-    std::vector<Triangle*> m_triangles;
+    std::vector<GameObject*> m_gameobjects;
 
     Renderer();
-    void drawPlayer(int player_num, int x, int y);
-    void drawCurrentPlayer(int x, int y);
-    void drawRect(int rect_index, int new_x, int new_y/*, SDL_Color *color*/);
-    void clearAllRects();
+    void clearPlayer(int player_index);
+    void clearAllPlayers();
 
 public:
     ~Renderer();
@@ -31,8 +30,7 @@ public:
 
     int init();
     void processInputs(Client *player);
-    void clearPlayer(int player_index);
-    void drawPlayers(Position *positions, int length, int current_player_index);
+    void updateRenderData(Position *positions, int length, int current_player_index);
     void drawScene();
 
     GLFWwindow* getWindow() const;
