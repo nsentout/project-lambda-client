@@ -4,8 +4,8 @@
 #include <string.h>
 #include <iostream>
 
-const float DEFAULT_WIDTH = 400.0f;
-const float DEFAULT_HEIGHT = 400.0f;
+const float DEFAULT_WIDTH = 150.0f;
+const float DEFAULT_HEIGHT = 100.0f;
 const Color DEFAULT_COLOR = { 150, 150, 150, 0 };
 
 Rectangle::Rectangle() : Rectangle(DEFAULT_WIDTH, DEFAULT_HEIGHT)
@@ -43,10 +43,9 @@ Rectangle::Rectangle(float width, float height, Color color)
 
     memcpy(m_vertices, default_vertices, sizeof(default_vertices));
 
-    m_shader = ShaderRegistry::getInstance()->getBasicShader();
+    m_shader = ShaderRegistry::getInstance()->getNoTextureShader();
 }
     
-
 void Rectangle::init()
 {
     glGenVertexArrays(1, &m_vao);

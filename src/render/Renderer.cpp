@@ -75,7 +75,7 @@ int Renderer::init()
     glm::mat4 viewMatrix = glm::mat4(1.0f);
     glm::mat4 projectionMatrix = glm::ortho(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, -1.0f, 1.0f);
 
-    Shader *basic_shader = ShaderRegistry::getInstance()->getBasicShader();
+    Shader *basic_shader = ShaderRegistry::getInstance()->getNoTextureShader();
     basic_shader->use();
     int modelMatrixLocation = basic_shader->getUniformLocation("model");
     int viewMatrixLocation = basic_shader->getUniformLocation("view");

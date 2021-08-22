@@ -6,8 +6,6 @@
 
 #include <vector>
 
-#define BASIC_SHADER_INDEX 0
-
 class ShaderRegistry
 {
 private:
@@ -18,7 +16,8 @@ public:
     ShaderRegistry();
     ~ShaderRegistry();
 
-    Shader* getBasicShader() const;
+    Shader* getNoTextureShader() const;
+    Shader* getGameObjectShader() const;
 
     static ShaderRegistry* getInstance();
 };

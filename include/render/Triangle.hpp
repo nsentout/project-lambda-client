@@ -8,6 +8,7 @@
 #include "Position.h"
 #include "Color.h"
 
+//TODO: manage width and color
 class Triangle : public GameObject
 {
 public:

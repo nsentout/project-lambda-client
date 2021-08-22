@@ -23,7 +23,7 @@ Triangle::Triangle()
 
     memcpy(m_vertices, default_vertices, sizeof(default_vertices));
 
-    m_shader = ShaderRegistry::getInstance()->getBasicShader();
+    m_shader = ShaderRegistry::getInstance()->getNoTextureShader();
 }
 
 void Triangle::init()
