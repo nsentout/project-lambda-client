@@ -159,6 +159,10 @@ void Client::handlePacketReceipt(ENetEvent *net_event)
 
 void Client::updateRenderData(lambda::GameState *gamestate) const
 {
+    if (gamestate->has_player_disconnected_id()) {
+        Renderer::getInstance()->clearPlayer(gamestate->player_disconnected_id() - 1);  // minus 1 because the server sends the index + 1
+    }
+
     // Retrieve players positions and send them to the renderer
     lambda::PlayersData player_data;
     int nb_players = gamestate->nb_players();

@@ -127,7 +127,6 @@ void Renderer::clearAllPlayers()
 void Renderer::updateRenderData(Position *positions, int nb_players, int current_player_index)
 {
     if (positions != nullptr) {
-        clearAllPlayers();
         for (int i = 0; i < nb_players; i++) {
             // Add a new rectangle to the vector if there is a new player
             if (m_gameobjects.size() == i) {
