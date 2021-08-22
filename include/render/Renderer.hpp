@@ -24,6 +24,8 @@ private:
     void clearPlayer(int player_index);
     void clearAllPlayers();
 
+    friend class Client;
+
 public:
     ~Renderer();
     static Renderer *getInstance();

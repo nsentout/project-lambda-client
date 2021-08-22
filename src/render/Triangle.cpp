@@ -56,8 +56,10 @@ void Triangle::erase() const
 
 }
 
-void Triangle::moveX(float movement)
+void Triangle::moveX(unsigned int movement)
 {
+    m_position.x += movement;
+
     m_vertices[m_x_offset] += movement;
     m_vertices[m_x_offset + m_stride] += movement;
     m_vertices[m_x_offset + m_stride * 2] += movement;
@@ -66,8 +68,10 @@ void Triangle::moveX(float movement)
     glBufferSubData(GL_ARRAY_BUFFER, 0, m_vertices_size, m_vertices);
 }
 
-void Triangle::moveY(float movement)
+void Triangle::moveY(unsigned int movement)
 {
+    m_position.y += movement;
+
     m_vertices[m_y_offset] += movement;
     m_vertices[m_y_offset + m_stride] += movement;
     m_vertices[m_y_offset + m_stride * 2] += movement;
@@ -76,10 +80,10 @@ void Triangle::moveY(float movement)
     glBufferSubData(GL_ARRAY_BUFFER, 0, m_vertices_size, m_vertices);
 }
 
-void Triangle::setXY(float x, float y)
+void Triangle::setXY(int x, int y)
 {
-    position.x = x;
-    position.y = y;
+    m_position.x = x;
+    m_position.y = y;
 
     float normalized_x =  x / SCREEN_WIDTH;
     float normalized_y =  (-y) / SCREEN_HEIGHT;
@@ -94,14 +98,4 @@ void Triangle::setXY(float x, float y)
  
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glBufferSubData(GL_ARRAY_BUFFER, 0, m_vertices_size, m_vertices);
-}
-
-float Triangle::getX()
-{
-    return 0.0f;
-}
-
-float Triangle::getY()
-{
-    return 0.0f;
 }

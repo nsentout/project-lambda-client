@@ -17,12 +17,9 @@ public:
     void draw() const override;
     void erase() const override;
 
-    void moveX(float movement) override;
-    void moveY(float movement) override;
-    void setXY(float x, float y) override;
-
-    float getX() override;
-    float getY() override;
+    void moveX(unsigned int movement) override;
+    void moveY(unsigned int movement) override;
+    void setXY(int x, int y) override;
 };
 
 #endif

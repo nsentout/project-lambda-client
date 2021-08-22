@@ -73,7 +73,7 @@ int Renderer::init()
     // Uniforms
     glm::mat4 modelMatrix = glm::mat4(1.0f);
     glm::mat4 viewMatrix = glm::mat4(1.0f);
-    glm::mat4 projectionMatrix = projectionMatrix= glm::ortho(0.0f, static_cast<GLfloat>(SCREEN_WIDTH), static_cast<GLfloat>(SCREEN_HEIGHT), 0.0f, -1.0f, 1.0f);
+    glm::mat4 projectionMatrix = glm::ortho(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, -1.0f, 1.0f);
 
     Shader *basic_shader = ShaderRegistry::getInstance()->getBasicShader();
     basic_shader->use();
@@ -112,12 +112,16 @@ void Renderer::drawScene()
 
 void Renderer::clearPlayer(int player_index)
 {
+    m_gameobjects[player_index]->erase();
     m_gameobjects.erase(m_gameobjects.begin() + player_index);
 }
 
 void Renderer::clearAllPlayers()
 {
-    //m_gameobjects.clear();
+    for (auto gameobject : m_gameobjects) {
+        gameobject->erase();
+    }
+    m_gameobjects.clear();
 }
 
 void Renderer::updateRenderData(Position *positions, int nb_players, int current_player_index)
@@ -134,6 +138,21 @@ void Renderer::updateRenderData(Position *positions, int nb_players, int current
             }
             else
                 m_gameobjects[i]->setXY(positions[i].x, positions[i].y);
+
+            Color player_color;
+            switch (i)
+            {
+                case 0:
+                    player_color = PLAYER1_COLOR;
+                    break;
+                case 1:
+                    player_color = PLAYER2_COLOR;
+                    break;
+                case 2:
+                    player_color = PLAYER3_COLOR;
+                    break;
+            }
+            m_gameobjects[i]->setColor(player_color);
         }
     }
 }

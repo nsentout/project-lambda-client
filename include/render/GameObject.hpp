@@ -18,8 +18,9 @@ protected:
     int m_stride;
     int m_x_offset;
     int m_y_offset;
+    int m_red_offset;
 
-    Position position;
+    Position m_position;
     float m_size;
     Color m_color;
 
@@ -31,18 +32,19 @@ protected:
 
 public:
     GameObject();
-    GameObject(Color color);
     ~GameObject();
 
     virtual void init() = 0;
     virtual void draw() const = 0;
     virtual void erase() const = 0;
 
-    virtual void moveX(float movement) = 0;
-    virtual void moveY(float movement) = 0;
-    virtual void setXY(float x, float y) = 0;
-    virtual float getX() = 0;
-    virtual float getY() = 0;
+    virtual void moveX(unsigned int movement) = 0;
+    virtual void moveY(unsigned int movement) = 0;
+    virtual void setXY(int x, int y) = 0;
+    virtual void setColor(Color color) = 0;
+    int getX() const;
+    int getY() const;
+    Color getColor() const;
 };
 
 #endif
